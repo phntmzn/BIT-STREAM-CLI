@@ -1,6 +1,38 @@
 import Foundation
 // Assuming you imported BIT_STREAM_LIB via bridging header or module map
 // Make sure to bridge Objective-C with Swift using a bridging header if needed
+import Foundation
+import CryptoKit
+import BIT_STREAM_LIB
+
+@interface BIT_STREAM_LIB : NSObject
+- (void)initializeMIDI;
+- (void)sendBitStream:(NSData *)data;
+- (void)teardownMIDI;
+@end
+
+// Example: Incoming MIDI data (replace with real input)
+let midiData: Data = Data([0x90, 0x3C, 0x40, 0x80, 0x3C, 0x40])  // Note on/off
+
+// Generate a symmetric key (store this securely in real apps)
+let key = SymmetricKey(size: .bits256)
+
+// Encrypt using AES-GCM
+do {
+    let sealedBox = try AES.GCM.seal(midiData, using: key)
+    let encryptedData = sealedBox.combined!
+    
+    print("Encrypted MIDI (Base64): \(encryptedData.base64EncodedString())")
+    
+    // To decrypt:
+    let box = try AES.GCM.SealedBox(combined: encryptedData)
+    let decryptedData = try AES.GCM.open(box, using: key)
+    
+    print("Decrypted MIDI: \(decryptedData as NSData)")
+} catch {
+    print("Encryption error: \(error)")
+}
+
 
 func printUsage() {
     print("""
@@ -58,3 +90,28 @@ default:
     print("Unknown command: \(args[1])")
     printUsage()
 }
+
+let bitstream = BIT_STREAM_LIB()
+bitstream.initializeMIDI()
+// ...
+
+class BitStreamManager {
+    private let lib = BIT_STREAM_LIB()
+    
+    func initialize() {
+        lib.initializeMIDI()
+    }
+    
+    func send(data: Data) {
+        lib.sendBitStream(data)
+    }
+    
+    func teardown() {
+        lib.teardownMIDI()
+    }
+}
+
+let manager = BitStreamManager()
+manager.initialize()
+// ...
+
