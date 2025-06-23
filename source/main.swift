@@ -5,33 +5,39 @@ import Foundation
 import CryptoKit
 import BIT_STREAM_LIB
 
-@interface BIT_STREAM_LIB : NSObject
-- (void)initializeMIDI;
-- (void)sendBitStream:(NSData *)data;
-- (void)teardownMIDI;
-@end
+struct CryptoHelper {
+    static func encrypt(_ data: Data, key: SymmetricKey) throws -> Data {
+        let sealedBox = try AES.GCM.seal(data, using: key)
+        return sealedBox.combined!
+    }
+
+    static func decrypt(_ data: Data, key: SymmetricKey) throws -> Data {
+        let sealedBox = try AES.GCM.SealedBox(combined: data)
+        return try AES.GCM.open(sealedBox, using: key)
+    }
+}
 
 // Example: Incoming MIDI data (replace with real input)
-let midiData: Data = Data([0x90, 0x3C, 0x40, 0x80, 0x3C, 0x40])  // Note on/off
+// let midiData: Data = Data([0x90, 0x3C, 0x40, 0x80, 0x3C, 0x40])  // Note on/off
 
 // Generate a symmetric key (store this securely in real apps)
 let key = SymmetricKey(size: .bits256)
 
 // Encrypt using AES-GCM
-do {
-    let sealedBox = try AES.GCM.seal(midiData, using: key)
-    let encryptedData = sealedBox.combined!
-    
-    print("Encrypted MIDI (Base64): \(encryptedData.base64EncodedString())")
-    
-    // To decrypt:
-    let box = try AES.GCM.SealedBox(combined: encryptedData)
-    let decryptedData = try AES.GCM.open(box, using: key)
-    
-    print("Decrypted MIDI: \(decryptedData as NSData)")
-} catch {
-    print("Encryption error: \(error)")
-}
+// do {
+//     let sealedBox = try AES.GCM.seal(midiData, using: key)
+//     let encryptedData = sealedBox.combined!
+//
+//     print("Encrypted MIDI (Base64): \(encryptedData.base64EncodedString())")
+//
+//     // To decrypt:
+//     let box = try AES.GCM.SealedBox(combined: encryptedData)
+//     let decryptedData = try AES.GCM.open(box, using: key)
+//
+//     print("Decrypted MIDI: \(decryptedData as NSData)")
+// } catch {
+//     print("Encryption error: \(error)")
+// }
 
 
 func printUsage() {
@@ -41,6 +47,8 @@ func printUsage() {
     initialize         Initialize MIDI session
     send <hexdata>     Send bitstream as hex (e.g., send 0xDEADBEEF)
     teardown           Close MIDI session
+    version              Show version info
+    help                 Show this help message
     """)
 }
 
@@ -50,50 +58,6 @@ guard args.count > 1 else {
     printUsage()
     exit(0)
 }
-
-let bitstream = BIT_STREAM_LIB()
-
-switch args[1] {
-case "initialize":
-    bitstream.initializeMIDI()
-    print("MIDI Initialized")
-
-case "send":
-    guard args.count > 2 else {
-        print("Provide hex data to send")
-        exit(1)
-    }
-
-    let hexString = args[2].replacingOccurrences(of: "0x", with: "")
-    var data = Data()
-
-    var index = hexString.startIndex
-    while index < hexString.endIndex {
-        let nextIndex = hexString.index(index, offsetBy: 2, limitedBy: hexString.endIndex) ?? hexString.endIndex
-        if nextIndex <= hexString.endIndex {
-            let byteStr = hexString[index..<nextIndex]
-            if let byte = UInt8(byteStr, radix: 16) {
-                data.append(byte)
-            }
-        }
-        index = nextIndex
-    }
-
-    bitstream.sendBitStream(data)
-    print("Bitstream sent: \(data as NSData)")
-
-case "teardown":
-    bitstream.teardownMIDI()
-    print("MIDI Teardown complete")
-
-default:
-    print("Unknown command: \(args[1])")
-    printUsage()
-}
-
-let bitstream = BIT_STREAM_LIB()
-bitstream.initializeMIDI()
-// ...
 
 class BitStreamManager {
     private let lib = BIT_STREAM_LIB()
@@ -112,6 +76,61 @@ class BitStreamManager {
 }
 
 let manager = BitStreamManager()
-manager.initialize()
-// ...
 
+switch args[1] {
+case "initialize":
+    manager.initialize()
+    print("MIDI Initialized")
+
+case "send":
+    guard args.count > 2 else {
+        print("Provide hex data to send")
+        exit(1)
+    }
+
+    let hexString = args.dropFirst(2).joined().replacingOccurrences(of: "0x", with: "")
+    
+    if hexString.count % 2 != 0 {
+        print("Hex string must have even length")
+        exit(1)
+    }
+
+    var data = Data()
+
+    var index = hexString.startIndex
+    while index < hexString.endIndex {
+        let nextIndex = hexString.index(index, offsetBy: 2, limitedBy: hexString.endIndex) ?? hexString.endIndex
+        if nextIndex <= hexString.endIndex {
+            let byteStr = hexString[index..<nextIndex]
+            if let byte = UInt8(byteStr, radix: 16) {
+                data.append(byte)
+            } else {
+                print("Invalid hex byte: \(byteStr)")
+                exit(1)
+            }
+        }
+        index = nextIndex
+    }
+
+    do {
+        let encrypted = try CryptoHelper.encrypt(data, key: key)
+        manager.send(data: encrypted)
+        print("Encrypted bitstream sent (Base64): \(encrypted.base64EncodedString())")
+    } catch {
+        print("Encryption failed: \(error)")
+    }
+
+case "teardown":
+    manager.teardown()
+    print("MIDI Teardown complete")
+
+case "help":
+    printUsage()
+
+case "version":
+    print("BIT-STREAM-CLI v1.0.0")
+
+default:
+    print("Unknown command: \(args[1])")
+    printUsage()
+}
