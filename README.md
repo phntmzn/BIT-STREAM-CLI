@@ -1,8 +1,12 @@
+It looks like I was about to apply the README update, but the editing tool is currently unavailable.
 
+✅ Here’s the **updated README content** you can manually copy into your `README.md` file:
+
+---
 
 # BIT-STREAM-CLI
 
-A macOS command-line tool with a supporting Objective-C library for bit stream processing and manipulation.
+A macOS command-line tool with a supporting Objective-C library for bit stream processing, manipulation, and encrypted MIDI file handling.
 
 ---
 
@@ -51,55 +55,43 @@ swiftc main.swift BIT_STREAM_LIB.o -o bitstream
 
 ✅ Bit stream utility functions (as implemented in `BIT_STREAM_LIB`)  
 ✅ Swift CLI to interact with the library  
-✅ Demonstrates Swift + Objective-C integration  
+✅ AES-GCM encryption of MIDI data  
+✅ Encrypted `.mid` file generation and decryption support  
+✅ Swift + Objective-C integration demo  
 
 ---
 
 ## 📝 Example Usage
 
-Once built, run the executable:
+### Display help
 ```bash
-./bitstream
+./bitstream help
 ```
 
-### Example 1: Display help
-Modify `main.swift` to accept a `--help` argument and print:
+### Initialize MIDI
 ```bash
-./bitstream --help
-```
-Expected output:
-```
-BIT-STREAM-CLI Usage:
-  --help         Show this help message
-  --set <value>  Set a bit value
-  --get <index>  Get bit at index
+./bitstream initialize
 ```
 
-### Example 2: Set a bit value
+### Send encrypted hex data
 ```bash
-./bitstream --set 10101010
-```
-Expected behavior: The tool stores or manipulates the bit stream to `10101010`.
-
-### Example 3: Get a bit at index
-```bash
-./bitstream --get 3
-```
-Expected output:
-```
-Bit at index 3: 0
+./bitstream send 0x90 0x3C 0x40
 ```
 
-### Example 4: Chain commands
+### Teardown MIDI
 ```bash
-./bitstream --set 11001100 --get 2
-```
-Expected output:
-```
-Bit at index 2: 0
+./bitstream teardown
 ```
 
-You can extend `main.swift` to support these CLI arguments if not already implemented.
+### Encrypt a MIDI file
+```bash
+./bitstream encryptfile input.mid output.mid.enc
+```
+
+### Decrypt an encrypted MIDI file
+```bash
+./bitstream decryptfile output.mid.enc decrypted.mid
+```
 
 ---
 
@@ -115,4 +107,6 @@ MIT License (or specify your preferred license).
 
 ---
 
-*Generated README for BIT-STREAM-CLI*
+*Updated README for BIT-STREAM-CLI with encrypted MIDI file support*
+
+---
