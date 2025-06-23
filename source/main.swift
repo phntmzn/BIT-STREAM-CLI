@@ -134,3 +134,39 @@ default:
     print("Unknown command: \(args[1])")
     printUsage()
 }
+
+case "encryptfile":
+    guard args.count > 3 else {
+        print("Usage: encryptfile <input.mid> <output.enc>")
+        exit(1)
+    }
+
+    let inputPath = args[2]
+    let outputPath = args[3]
+
+    do {
+        let midiData = try Data(contentsOf: URL(fileURLWithPath: inputPath))
+        let encrypted = try CryptoHelper.encrypt(midiData, key: key)
+        try encrypted.write(to: URL(fileURLWithPath: outputPath))
+        print("Encrypted MIDI written to \(outputPath)")
+    } catch {
+        print("Failed to encrypt MIDI file: \(error)")
+    }
+
+case "decryptfile":
+    guard args.count > 3 else {
+        print("Usage: decryptfile <input.enc> <output.mid>")
+        exit(1)
+    }
+
+    let inputPath = args[2]
+    let outputPath = args[3]
+
+    do {
+        let encData = try Data(contentsOf: URL(fileURLWithPath: inputPath))
+        let decrypted = try CryptoHelper.decrypt(encData, key: key)
+        try decrypted.write(to: URL(fileURLWithPath: outputPath))
+        print("Decrypted MIDI written to \(outputPath)")
+    } catch {
+        print("Failed to decrypt MIDI file: \(error)")
+    }
